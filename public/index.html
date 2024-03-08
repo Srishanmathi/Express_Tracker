@@ -1,64 +1,8 @@
 <!-- <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <title>Express Tracker</title>
-    </head>
-    <body>
-        <h1>Express Tracker</h1>
-        <form id="expenseForm">
-            <label for="description">Description:</label>
-            <input type="text" id="description" name="description" required><br>
-            <label for="amount">Amount:</label>
-            <input type="number" id="amount" name="amount" min="0" required><br>
-            <button type="Submit">Add Expense</button>
-        </form>
-        <h2>Expense</h2>
-        <ul id="expenseList"></ul>
-        <script>
-            const form=document.getElementById('expenseForm');
-            const expenseList=document.getElementById('expenseList');
-            form.addEventListener('submit',async(e)=>{
-                e.preventDefault();
-                const description=document.getElementById('description').value;
-                const amount=parseFloat(document.getElementById('amount').value);
-                const respone=await fetch('/api/expenses',{
-                    method:'POST',
-                    headers:{
-                        'Content-Type':'application/json'
-                    },
-                    body:JSON.stringify({description,amount})
-                    });
-                    if(response.ok){
-                        const newExpense=await response.json();
-                        expenses.push(newExpense);
-                        renderExpenses();
-                        form.reset();
-                    }
-                });
-                async function getElementById(){
-                    const response=await fetch('/api/expenses');
-                    if(response.ok){
-                        expenses=await response.json();
-                        renderExpenses();
-                    }
-                }
-                function renderExpenses(){
-                    expenseList.innerHTML='';
-                    expense.forEach(expense=>{
-                        const li=document.createElement('li');
-                        li.textContent=`${expense.description}: ${expense.amount.toFixed(2)}`;
-                        expenseList.appendChild(li);
-                    });
-                }
-                getExpenses();
-        </script>
-    </body>
-</html> -->
-<!DOCTYPE html>
-<html lang="en">
 <head>
   <title>Expense Tracker</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" type="text/css" href="./styles.css"> 
 </head>
 <body>
   <h1>Expense Tracker</h1>
@@ -75,27 +19,72 @@
   <script>
     const form = document.getElementById('expenseForm');
     const expenseList = document.getElementById('expenseList');
+    let editingExpenseId=null;
+
+    async function getExpenses(){
+      const response=await fetch('/api/expenses');
+      if(response.ok){
+        const expenses =await response.json();
+        renderExpenses(expenses);
+      }
+    }
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const description = document.getElementById('description').value;
       const amount = parseFloat(document.getElementById('amount').value);
 
-      const response = await fetch('/api/expenses', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
+      if(editingExpenseId){
+        await updateExpense(editingExpenseId,description,amount);
+        editingExpenseId=null;
+      }else{
+        await addExpense(description,amount);
+      }
+      getExpenses();
+      form.reset();
+    });
+
+    async function addExpense(description,amount){
+      const response=await fetch('/api/expenses',{
+        method:"POST",
+        headers:{
+          'Content-Type':'application/json'
         },
-        body: JSON.stringify({ description, amount })
+        body:JSON.stringify({description,amount})
       });
 
-      if (response.ok) {
-        const newExpense = await response.json();
-        expenses.push(newExpense);
-        renderExpenses();
-        form.reset();
+      if(!response.ok){
+        console.error('Failes to add expense');
       }
-    });
+    }
+
+    async function deleteExpense(id){
+      await fetch(`/api/expenses/${id}`,{method:'DELETE'});
+      getExpenses();
+    }
+
+    async function updateExpense(id,description,amount){
+      await fetch(`/api/expenses/${id}`,{method:'PUT',
+    headers:{
+      'Content-Type':'application/json'
+    },
+  })
+    }
+
+      // const response = await fetch('/api/expenses', {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json'
+      //   },
+      //   body: JSON.stringify({ description, amount })
+      // });
+
+      // if (response.ok) {
+      //   const newExpense = await response.json();
+      //   expenses.push(newExpense);
+      //   renderExpenses();
+      //   form.reset();
+      // } 
 
     async function getExpenses() {
       const response = await fetch('/api/expenses');
@@ -109,9 +98,112 @@
       expenseList.innerHTML = '';
       expenses.forEach(expense => {
         const li = document.createElement('li');
-        li.textContent = `${expense.description}: ${expense.amount.toFixed(2)}`;
+        li.textContent = `${expense.description}: $${expense.amount.toFixed(2)}`;
         expenseList.appendChild(li);
       });
+    }
+
+    getExpenses();
+  </script>
+</body>
+</html> -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expense Tracker</title>
+</head>
+<body>
+  <h1>Expense Tracker</h1>
+  <form id="expenseForm">
+    <label for="description">Description:</label>
+    <input type="text" id="description" name="description" required><br>
+    <label for="amount">Amount:</label>
+    <input type="number" id="amount" name="amount" min="0" required><br>
+    <button type="submit">Add Expense</button>
+  </form>
+  <h2>Expenses</h2>
+  <ul id="expenseList"></ul>
+
+  <script>
+    const form = document.getElementById('expenseForm');
+    const expenseList = document.getElementById('expenseList');
+    let editingExpenseId = null;
+
+    async function getExpenses() {
+      const response = await fetch('/api/expenses');
+      if (response.ok) {
+        const expenses = await response.json();
+        renderExpenses(expenses);
+      }
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const description = document.getElementById('description').value;
+      const amount = parseFloat(document.getElementById('amount').value);
+
+      if (editingExpenseId) {
+        await updateExpense(editingExpenseId, description, amount);
+        editingExpenseId = null;
+      } else {
+        await addExpense(description, amount);
+      }
+
+      getExpenses();
+      form.reset();
+    });
+
+    async function addExpense(description, amount) {
+      const response = await fetch('/api/expenses', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ description, amount })
+      });
+
+      if (!response.ok) {
+        console.error('Failed to add expense');
+      }
+    }
+
+    async function deleteExpense(id) {
+      await fetch(`/api/expenses/${id}`, { method: 'DELETE' });
+      getExpenses();
+    }
+
+    async function updateExpense(id, description, amount) {
+      await fetch(`/api/expenses/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ description, amount })
+      });
+    }
+
+    function renderExpenses(expenses) {
+      expenseList.innerHTML = '';
+      expenses.forEach(expense => {
+        const li = document.createElement('li');
+        li.id = expense._id;
+        li.innerHTML = `
+          ${expense.description}: $${expense.amount.toFixed(2)}
+          <button onclick="deleteExpense('${expense._id}')">Delete</button>
+          <button onclick="editExpense('${expense._id}', '${expense.description}', ${expense.amount})">Edit</button>
+        `;
+        expenseList.appendChild(li);
+      });
+    }
+
+    function editExpense(id, description, amount) {
+      document.getElementById('description').value = description;
+      document.getElementById('amount').value = amount;
+      editingExpenseId = id;
     }
 
     getExpenses();
